@@ -12,18 +12,23 @@ namespace CUDA
 		public:
 		FreeFunction(void(*fcn)(ReturnType*, Args...)) : dataOnDevice_{nullptr}, fcn_{fcn}
 		{
-			cudaMalloc((void**)&dataOnDevice_, sizeof(ReturnType));
+			allocateMemoryOnDevice();
 		}
 		const ReturnType& operator()(Args&& ...args)
 		{
-			(*fcn_)<<<1, 1>>>(dataOnDevice_, std::forward<Args>(args)...);
-			cudaMemcpy(&dataOnHost_, dataOnDevice_, sizeof(ReturnType), cudaMemcpyDeviceToHost);
+			callFunctionOnDevice(std::forward<Args>(args)...);
+			retrieveResultFromDevice();
 			return dataOnHost_;
 		}
 		~FreeFunction()
 		{
-			cudaFree(dataOnDevice_);
+			freeMemoryOnDevice();
 		}
+		private:
+		void allocateMemoryOnDevice() { cudaMalloc((void**)&dataOnDevice_, sizeof(ReturnType)); }
+		void callFunctionOnDevice(Args&& ...args) { (*fcn_)<<<1, 1>>>(dataOnDevice_, std::forward<Args>(args)...); }
+		void retrieveResultFromDevice() { cudaMemcpy(&dataOnHost_, dataOnDevice_, sizeof(ReturnType), cudaMemcpyDeviceToHost); }
+		void freeMemoryOnDevice() { cudaFree(dataOnDevice_); }
 		private:
 		ReturnType dataOnHost_;
 		ReturnType* dataOnDevice_;
