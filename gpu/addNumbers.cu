@@ -1,4 +1,4 @@
-// Reference: [1] Edward Kandrot. CUDA by Example: An Introduction to General-Purpose GPU Programming.
+// Reference: [1] Jason Sanders, Edward Kandrot. CUDA by Example: An Introduction to General-Purpose GPU Programming.
 
 #include <iostream>
 
