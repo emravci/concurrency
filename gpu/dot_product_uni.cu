@@ -75,7 +75,7 @@ int main()
     init<<<256, 1024>>>(vector.size(), vector.address());
     cudaDeviceSynchronize();
 
-	// concurrent - 9ms but memory allocation takes around 2sec
+    // concurrent - 9ms but memory allocation takes around 2sec
     Vector<double> partial(blocksPerGrid);
     auto begin = std::chrono::high_resolution_clock::now();
     dot<<<blocksPerGrid, threadsPerBlock>>>(vector.size(), vector.address(), vector.address(), partial.address());
