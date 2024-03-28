@@ -4,7 +4,7 @@
 #include <numeric>
 #include <memory>
 #include <chrono>
-#include "include/Matrix.cuh"
+#include "../include/Matrix.cuh"
 
 template<class Type>
 __global__ void fill(UniformMemory::Matrix<Type>& matrix, Type value)
