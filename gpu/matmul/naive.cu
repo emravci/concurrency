@@ -7,21 +7,12 @@
 #include <chrono>
 #include "include/Matrix.cuh"
 
-struct Stride
-{
-    __host__ __device__ Stride(std::size_t x_, std::size_t y_ = 0, std::size_t z_ = 0) : x{x_}, y{y_}, z{z_} {}
-    std::size_t x, y, z;
-};
-
 template<class Type>
 __global__ void fill(UniformMemory::Matrix<Type>& matrix, Type value)
 {
-    const std::size_t x = threadIdx.x + blockIdx.x * blockDim.x;
-    const std::size_t y = threadIdx.y + blockIdx.y * blockDim.y;
-    const Stride stride{blockDim.x * gridDim.x, blockDim.y * gridDim.y};
-    for(std::size_t i = x; i < matrix.row(); i += stride.x)
+    for(std::size_t i = threadIdx.y + blockIdx.y * blockDim.y; i < matrix.row(); i += blockDim.y * gridDim.y)
     {
-        for(std::size_t j = y; j < matrix.column(); j += stride.y)
+        for(std::size_t j = threadIdx.x + blockIdx.x * blockDim.x; j < matrix.column(); j += blockDim.x * gridDim.x)
         {
             matrix(i, j) = value;
         }
@@ -31,12 +22,9 @@ __global__ void fill(UniformMemory::Matrix<Type>& matrix, Type value)
 template<class Type>
 __global__ void multiply(UniformMemory::Matrix<Type>& answer, const UniformMemory::Matrix<Type>& lhs, const UniformMemory::Matrix<Type>& rhs)
 {
-    const std::size_t x = threadIdx.x + blockIdx.x * blockDim.x;
-    const std::size_t y = threadIdx.y + blockIdx.y * blockDim.y;
-    const Stride stride{blockDim.x * gridDim.x, blockDim.y * gridDim.y};
-    for(std::size_t i = x; i < lhs.row(); i += stride.x)
+    for(std::size_t i = threadIdx.y + blockIdx.y * blockDim.y; i < lhs.row(); i += blockDim.y * gridDim.y)
     {
-        for(std::size_t j = y; j < rhs.column(); j += stride.y)
+        for(std::size_t j = threadIdx.x + blockIdx.x * blockDim.x; j < rhs.column(); j += blockDim.x * gridDim.x)
         {
             auto value = static_cast<Type>(0);
             for(std::size_t k = 0; k < lhs.column() && k < rhs.row(); ++k)
@@ -93,13 +81,15 @@ int main()
         fill<<<blocksPerGrid, threadsPerBlock>>>(*pRHS, 1.0);
     }
     auto pAnswer = std::make_unique<MatrixType>(lhsRow, rhsCol);
-    {   // matrix multiplication takes 109ms according to nvprof
+    {   // matrix multiplication takes 92ms according to nvprof
         dim3 threadsPerBlock(32, 32);
         dim3 blocksPerGrid(32, 32);
         multiply<<<blocksPerGrid ,threadsPerBlock>>>(*pAnswer, *pLHS, *pRHS);
         cudaDeviceSynchronize();
     }
     std::cout << std::boolalpha << checkResult(*pAnswer, static_cast<double>(common)) << "\n";
+    
+    #if 0
     {   // fill with zeros
         dim3 threadsPerBlock(32, 32);
         dim3 blocksPerGrid(32, 32);
@@ -113,6 +103,7 @@ int main()
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - begin);
     std::cout << checkResult(*pAnswer, static_cast<double>(common)) << "\n";
     std::cout << duration.count() << "sec\n";
+    #endif
 
     return 0;
 }
