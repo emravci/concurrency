@@ -6,21 +6,12 @@
 #include <chrono>
 #include "include/Matrix.cuh"
 
-struct Stride
-{
-    __host__ __device__ Stride(std::size_t x_, std::size_t y_ = 0, std::size_t z_ = 0) : x{x_}, y{y_}, z{z_} {}
-    std::size_t x, y, z;
-};
-
 template<class Type>
 __global__ void fill(UniformMemory::Matrix<Type>& matrix, Type value)
 {
-    const std::size_t x = threadIdx.x + blockIdx.x * blockDim.x;
-    const std::size_t y = threadIdx.y + blockIdx.y * blockDim.y;
-    const Stride stride{blockDim.x * gridDim.x, blockDim.y * gridDim.y};
-    for(std::size_t i = x; i < matrix.row(); i += stride.x)
+    for(std::size_t i = threadIdx.y + blockIdx.y * blockDim.y; i < matrix.row(); i += blockDim.y * gridDim.y)
     {
-        for(std::size_t j = y; j < matrix.column(); j += stride.y)
+        for(std::size_t j = threadIdx.x + blockIdx.x * blockDim.x; j < matrix.column(); j += blockDim.x * gridDim.x)
         {
             matrix(i, j) = value;
         }
@@ -35,29 +26,23 @@ __global__ void multiply(UniformMemory::Matrix<Type>& answer, const UniformMemor
 {
     __shared__ Type leftTile[tileWidth][tileWidth];
     __shared__ Type rightTile[tileWidth][tileWidth];
-    
-    const std::size_t x = threadIdx.x + blockIdx.x * blockDim.x;
-    const std::size_t y = threadIdx.y + blockIdx.y * blockDim.y;
-    const Stride stride{blockDim.x * gridDim.x, blockDim.y * gridDim.y};
 
+    const auto zero = static_cast<Type>(0);
     const std::size_t commonSize = lhs.column();
-    for(std::size_t i = x; i < lhs.row(); i += stride.x)
+    for(std::size_t i = threadIdx.y + blockIdx.y * blockDim.y; i < lhs.row(); i += blockDim.y * gridDim.y)
     {
-        for(std::size_t j = y; j < rhs.column(); j += stride.y)
+        for(std::size_t j = threadIdx.x + blockIdx.x * blockDim.x; j < rhs.column(); j += blockDim.x * gridDim.x)
         {
-            auto value = static_cast<Type>(0);
-            for(std::size_t h = 0; h < commonSize / tileWidth; ++h)
+            auto value = zero;
+            for(std::size_t h = 0; h < (commonSize + tileWidth - 1) / tileWidth; ++h)
             {
-                if(threadIdx.y + h * tileWidth < commonSize) { leftTile[threadIdx.x][threadIdx.y] = lhs(i, threadIdx.y + h * tileWidth); }
-                else { leftTile[threadIdx.x][threadIdx.y] = static_cast<Type>(0); }
-                if(threadIdx.x + h * tileWidth < commonSize) { rightTile[threadIdx.x][threadIdx.y] = rhs(threadIdx.x + h * tileWidth, j); }
-                else { rightTile[threadIdx.x][threadIdx.y] = static_cast<Type>(0); }
+                if(threadIdx.x + h * tileWidth < commonSize) { leftTile[threadIdx.y][threadIdx.x] = lhs(i, threadIdx.x + h * tileWidth); }
+                else { leftTile[threadIdx.y][threadIdx.x] = zero; }
+                if(threadIdx.y + h * tileWidth < commonSize) { rightTile[threadIdx.y][threadIdx.x] = rhs(threadIdx.y + h * tileWidth, j); }
+                else { rightTile[threadIdx.y][threadIdx.x] = zero; }
                 __syncthreads();
 
-                for(std::size_t k = 0; k < tileWidth; ++k)
-                {
-                    value += leftTile[threadIdx.x][k] * rightTile[k][threadIdx.y];
-                }
+                for(std::size_t k = 0; k < tileWidth; ++k) { value += leftTile[threadIdx.y][k] * rightTile[k][threadIdx.x]; }
                 __syncthreads();
             }
             answer(i, j) = value;
@@ -93,7 +78,7 @@ int main()
         fill<<<blocksPerGrid, threadsPerBlock>>>(*pRHS, 1.0);
     }
     auto pAnswer = std::make_unique<MatrixType>(lhsRow, rhsCol);
-    {   // matrix multiplication takes 95ms according to nvprof achieving at least 10% improvement
+    {   // matrix multiplication takes 72ms according to nvprof achieving at least 20% improvement
         dim3 threadsPerBlock(tileWidth, tileWidth);
         dim3 blocksPerGrid(32, 32);
         multiply<<<blocksPerGrid ,threadsPerBlock>>>(*pAnswer, *pLHS, *pRHS);
