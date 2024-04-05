@@ -24,8 +24,16 @@ class UniformMemory::Vector : public Managed
     __host__ __device__ const Type* cbegin() const { return data_; }
     __host__ __device__ const Type* cend() const { return &data_[size_]; }
     private:
-    void allocateUnifiedMemory() { cudaMallocManaged(&data_, size_ * sizeof(Type)); }
-    void freeUnifiedMemory() { cudaFree(data_); }
+    void allocateUnifiedMemory() 
+    {
+        cudaMallocManaged(&data_, size_ * sizeof(Type));
+        cudaDeviceSynchronize();
+    }
+    void freeUnifiedMemory() 
+    {
+        cudaDeviceSynchronize();
+        cudaFree(data_); 
+    }
     private:
     Type *data_ = nullptr;
     std::size_t size_;
