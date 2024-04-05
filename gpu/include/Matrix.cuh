@@ -26,8 +26,16 @@ class UniformMemory::Matrix : public Managed
     __host__ __device__ const Type* cbegin() const { return data_; }
     __host__ __device__ const Type* cend() const { return &data_[size()]; }
     private:
-    void allocateUnifiedMemory() { cudaMallocManaged(&data_, size() * sizeof(Type)); }
-    void freeUnifiedMemory() { cudaFree(data_); }
+    void allocateUnifiedMemory() 
+    {   
+        cudaMallocManaged(&data_, size() * sizeof(Type));
+        cudaDeviceSynchronize();
+    }
+    void freeUnifiedMemory() 
+    { 
+        cudaDeviceSynchronize();
+        cudaFree(data_); 
+    }
     __host__ __device__ std::size_t convertToOneDimensionalIndex(std::size_t i, std::size_t j) const { return i * column_ + j; }
     private:
     Type *data_ = nullptr;
