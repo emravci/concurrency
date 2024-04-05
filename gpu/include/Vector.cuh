@@ -1,5 +1,7 @@
 // Reference: [1] Unified Memory in CUDA 6 by Mark Harris. NVIDIA Developer Blog
 
+#pragma once
+
 #include "Managed.cuh"
 
 namespace UniformMemory { template<class Type> class Vector; }
