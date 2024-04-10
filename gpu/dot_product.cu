@@ -12,7 +12,7 @@ const int threadsPerBlock = 1024;
 const int blocksPerGrid = 256;
 
 template<class Type>
-__global__ void fill(UniformMemory::Vector<Type>& array, Type value)
+__global__ void fill(UnifiedMemory::Vector<Type>& array, Type value)
 {
     const std::size_t index = threadIdx.x + blockIdx.x * blockDim.x;
     const std::size_t stride = blockDim.x * gridDim.x;
@@ -20,7 +20,7 @@ __global__ void fill(UniformMemory::Vector<Type>& array, Type value)
 }
 
 template<class Type>
-__global__ void dot(UniformMemory::Vector<Type>& partials, const UniformMemory::Vector<Type>& lhs, const UniformMemory::Vector<Type>& rhs)
+__global__ void dot(UnifiedMemory::Vector<Type>& partials, const UnifiedMemory::Vector<Type>& lhs, const UnifiedMemory::Vector<Type>& rhs)
 {
     __shared__ Type cache[threadsPerBlock];
 
@@ -45,7 +45,7 @@ __global__ void dot(UniformMemory::Vector<Type>& partials, const UniformMemory::
 
 int main()
 {
-    using VectorType = UniformMemory::Vector<double>;
+    using VectorType = UnifiedMemory::Vector<double>;
     auto ptrVectorOfOnes = std::make_unique<VectorType>(N);
     // surprisingly it takes around 320ms, sequential std::fill on CPU takes around 550ms
     // multithreaded fill might perform better
