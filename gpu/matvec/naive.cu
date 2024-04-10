@@ -5,13 +5,13 @@
 #include "../include/Vector.cuh"
 
 template<class Type>
-__global__ void fill(UniformMemory::Vector<Type>& array, Type value)
+__global__ void fill(UnifiedMemory::Vector<Type>& array, Type value)
 {
     for(std::size_t i = threadIdx.x + blockIdx.x * blockDim.x; i < array.size(); i += blockDim.x * gridDim.x) { array[i] = value; }
 }
 
 template<class Type>
-__global__ void fill(UniformMemory::Matrix<Type>& matrix, Type value)
+__global__ void fill(UnifiedMemory::Matrix<Type>& matrix, Type value)
 {
     for(std::size_t i = threadIdx.y + blockIdx.y * blockDim.y; i < matrix.row(); i += blockDim.y * gridDim.y)
     {
@@ -23,7 +23,7 @@ __global__ void fill(UniformMemory::Matrix<Type>& matrix, Type value)
 }
 
 template<class Type>
-__global__ void multiply(UniformMemory::Vector<Type>& ans, const UniformMemory::Matrix<Type>& matrix, const UniformMemory::Vector<Type>& vector)
+__global__ void multiply(UnifiedMemory::Vector<Type>& ans, const UnifiedMemory::Matrix<Type>& matrix, const UnifiedMemory::Vector<Type>& vector)
 {
     for(std::size_t i = threadIdx.x + blockIdx.x * blockDim.x; i < matrix.row(); i += blockDim.x * gridDim.x)
     {
@@ -37,7 +37,7 @@ __global__ void multiply(UniformMemory::Vector<Type>& ans, const UniformMemory::
 }
 
 template<class Type>
-bool checkResult(const UniformMemory::Vector<Type>& vector, Type value)
+bool checkResult(const UnifiedMemory::Vector<Type>& vector, Type value)
 {
     for(std::size_t i = 0; i < vector.size(); ++i) { if(vector[i] != value) { return false; } }
     return true;
@@ -45,8 +45,8 @@ bool checkResult(const UniformMemory::Vector<Type>& vector, Type value)
 
 int main()
 {
-    using MatrixType = UniformMemory::Matrix<double>;
-    using VectorType = UniformMemory::Vector<double>;
+    using MatrixType = UnifiedMemory::Matrix<double>;
+    using VectorType = UnifiedMemory::Vector<double>;
     constexpr std::size_t row = 1024 * 2;
     constexpr std::size_t col = 1024 * 4;
     auto pMatrix = std::make_unique<MatrixType>(row, col);
