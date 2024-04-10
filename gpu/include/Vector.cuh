@@ -4,10 +4,10 @@
 
 #include "Managed.cuh"
 
-namespace UniformMemory { template<class Type> class Vector; }
+namespace UnifiedMemory { template<class Type> class Vector; }
 
 template<class Type>
-class UniformMemory::Vector : public Managed
+class UnifiedMemory::Vector : public Managed
 {
     public:
     Vector(std::size_t size) : size_{size} { allocateUnifiedMemory(); }
