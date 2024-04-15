@@ -44,6 +44,8 @@ class UnifiedMemory::SharedMatrix
     __host__ __device__ std::size_t column() const { return mutableColumn(); }
     __host__ __device__ Type& operator[](std::size_t i) { return data_[i]; }
     __host__ __device__ const Type& operator[](std::size_t i) const { return data_[i]; }
+    __host__ __device__ Type& operator()(std::size_t i, std::size_t j) { return data_[convertToOneDimensionalIndex(i, j)]; }
+    __host__ __device__ const Type& operator()(std::size_t i, std::size_t j) const { return data_[convertToOneDimensionalIndex(i, j)]; }
     __host__ __device__ Type* begin() { return data_; }
     __host__ __device__ Type* end() { return &data_[size()]; }
     __host__ __device__ const Type* cbegin() const { return data_; }
@@ -52,6 +54,7 @@ class UnifiedMemory::SharedMatrix
     __host__ __device__ std::size_t& mutableRow() const { return integrals_[0]; }
     __host__ __device__ std::size_t& mutableColumn() const { return integrals_[1]; }
     __host__ __device__ std::size_t& mutableReferenceCount() const { return integrals_[2]; }
+    __host__ __device__ std::size_t convertToOneDimensionalIndex(std::size_t i, std::size_t j) const { return i * column() + j; }
     void allocateUnifiedMemory(std::size_t size) 
     {
         cudaMallocManaged(&data_, size * sizeof(Type));
