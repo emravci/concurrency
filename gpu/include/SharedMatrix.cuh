@@ -66,11 +66,7 @@ class UnifiedMemory::SharedMatrix
         mutableColumn() = column;
         mutableReferenceCount() = 1;
     }
-    void release()
-    {
-        --mutableReferenceCount();
-        if(mutableReferenceCount() == 0) { freeUnifiedMemory(); }
-    }
+    void release() { if(--mutableReferenceCount() == 0) { freeUnifiedMemory(); } }
     void freeUnifiedMemory() 
     {
         cudaFree(data_);
