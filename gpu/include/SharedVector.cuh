@@ -2,7 +2,7 @@
 //            [2] CUDA C++ Programming Guide
 
 // [-] make reference counting thread-safe
-// [-] without cudaDeviceSync at the beginning of dtor, results in seg-fault. why?
+// [x] without cudaDeviceSync at the beginning of dtor, results in seg-fault. why?
 // [x] combined memory allocs into one single using void* then casting and shifting appropriately?..
 // would it break alignment for alternating Type classes
 // [x] ctor, copy ctor assignment op and dtor are not not needed on device (so far)
