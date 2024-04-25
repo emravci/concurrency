@@ -1,8 +1,8 @@
 #include <iostream>
 #include <memory>
 
-#include "../include/Matrix.cuh"
-#include "../include/Vector.cuh"
+#include "../include/UnifiedMemory/Matrix.cuh"
+#include "../include/UnifiedMemory/Vector.cuh"
 
 template<class Type>
 __global__ void fill(UnifiedMemory::Vector<Type>& array, Type value)
