@@ -51,7 +51,7 @@ int main()
     using VectorType = ManagedMemory::Vector<double>;
     auto ptrVectorOfOnes = std::make_unique<VectorType>(N);
     VectorType& vectorOfOnes = *ptrVectorOfOnes;
-    // surprisingly it takes around 320ms, sequential std::fill on CPU takes around 550ms
+    // surprisingly it takes around 450ms, sequential std::fill on CPU takes around 550ms
     // multithreaded fill might perform better
     fill<<<blocksPerGrid, threadsPerBlock>>>(vectorOfOnes, 1.0);
 
