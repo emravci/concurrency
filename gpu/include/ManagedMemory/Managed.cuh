@@ -2,9 +2,9 @@
 
 #pragma once
 
-namespace UnifiedMemory { class Managed; }
+namespace ManagedMemory { class Managed; }
 
-class UnifiedMemory::Managed
+class ManagedMemory::Managed
 {
     public: 
     void *operator new(std::size_t len)
