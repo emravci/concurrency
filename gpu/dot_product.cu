@@ -6,7 +6,7 @@
 #include <numeric>
 #include <chrono>
 #include <memory>
-#include "include/UnifiedMemory/Vector.cuh"
+#include "include/ManagedMemory/Vector.cuh"
 #include "include/OpenKernel/Vector.cuh"
 
 const int N = 1024 * 1024 * 256;
@@ -48,22 +48,23 @@ __global__ void dot(VectorType& partials, const VectorType& lhs, const VectorTyp
 int main()
 {
     #if 1
-    using VectorType = UnifiedMemory::Vector<double>;
+    using VectorType = ManagedMemory::Vector<double>;
     auto ptrVectorOfOnes = std::make_unique<VectorType>(N);
+    VectorType& vectorOfOnes = *ptrVectorOfOnes;
     // surprisingly it takes around 320ms, sequential std::fill on CPU takes around 550ms
     // multithreaded fill might perform better
-    fill<<<blocksPerGrid, threadsPerBlock>>>(*ptrVectorOfOnes, 1.0);
+    fill<<<blocksPerGrid, threadsPerBlock>>>(vectorOfOnes, 1.0);
 
     // 8ms total
     // concurrent - 8ms dot according to nvprof
     auto ptrPartials = std::make_unique<VectorType>(blocksPerGrid);
     VectorType& partials = *ptrPartials;
     auto begin = std::chrono::high_resolution_clock::now();
-    dot<<<blocksPerGrid, threadsPerBlock>>>(partials, *ptrVectorOfOnes, *ptrVectorOfOnes);
+    dot<<<blocksPerGrid, threadsPerBlock>>>(partials, vectorOfOnes, vectorOfOnes);
     cudaDeviceSynchronize();
 
     #elif 0
-    using VectorType = UnifiedMemory::Vector<double>;
+    using VectorType = ManagedMemory::Vector<double>;
     VectorType vectorOfOnes(N);
     // surprisingly it takes around 439ms, sequential std::fill on CPU takes around 550ms
     // multithreaded fill might perform better
