@@ -1,5 +1,6 @@
 // Reference: [1] Unified Memory for CUDA Beginners by Mark Harris
 //            [2] Jason Sanders, Edward Kandrot. CUDA by Example: An Introduction to General-Purpose GPU Programming.
+//            [3] CUDA C++ Programming Guide
 
 #include <iostream>
 #include <numeric>
@@ -46,6 +47,7 @@ __global__ void dot(VectorType& partials, const VectorType& lhs, const VectorTyp
 
 int main()
 {
+    #if 1
     using VectorType = UnifiedMemory::Vector<double>;
     auto ptrVectorOfOnes = std::make_unique<VectorType>(N);
     // surprisingly it takes around 320ms, sequential std::fill on CPU takes around 550ms
@@ -55,15 +57,44 @@ int main()
     // 8ms total
     // concurrent - 8ms dot according to nvprof
     auto ptrPartials = std::make_unique<VectorType>(blocksPerGrid);
+    VectorType& partials = *ptrPartials;
     auto begin = std::chrono::high_resolution_clock::now();
-    dot<<<blocksPerGrid, threadsPerBlock>>>(*ptrPartials, *ptrVectorOfOnes, *ptrVectorOfOnes);
+    dot<<<blocksPerGrid, threadsPerBlock>>>(partials, *ptrVectorOfOnes, *ptrVectorOfOnes);
     cudaDeviceSynchronize();
+
+    #elif 0
+    using VectorType = UnifiedMemory::Vector<double>;
+    VectorType vectorOfOnes(N);
+    // surprisingly it takes around 439ms, sequential std::fill on CPU takes around 550ms
+    // multithreaded fill might perform better
+    fill<<<blocksPerGrid, threadsPerBlock>>>(vectorOfOnes, 1.0);
+
+    // 11ms total
+    // concurrent - 10ms dot according to nvprof
+    VectorType partials(blocksPerGrid);
+    auto begin = std::chrono::high_resolution_clock::now();
+    dot<<<blocksPerGrid, threadsPerBlock>>>(partials, vectorOfOnes, vectorOfOnes);
+    cudaDeviceSynchronize();
+
+    #else
+    using VectorType = OpenKernel::Vector<double>;
+    VectorType vectorOfOnes(N);
+    // it takes around 3400ms, sequential std::fill on CPU takes around 550ms
+    fill<<<blocksPerGrid, threadsPerBlock>>>(vectorOfOnes, 1.0);
+
+    // 3400ms total
+    // concurrent - 12ms dot according to nvprof
+    VectorType partials(blocksPerGrid);
+    auto begin = std::chrono::high_resolution_clock::now();
+    dot<<<blocksPerGrid, threadsPerBlock>>>(partials, vectorOfOnes, vectorOfOnes);
+    // it takes more than 3sec
+    cudaDeviceSynchronize();
+    #endif
     
     // sequential addition on CPU - 150us
-    double value = std::accumulate(ptrPartials->cbegin(), ptrPartials->cend(), 0.0);
+    double value = std::accumulate(partials.cbegin(), partials.cend(), 0.0);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
     std::cout << std::fixed << value << " in " << duration.count() << "ms\n";
-
     return 0;
 }
