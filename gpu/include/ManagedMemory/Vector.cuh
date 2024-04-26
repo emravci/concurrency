@@ -4,10 +4,10 @@
 
 #include "Managed.cuh"
 
-namespace UnifiedMemory { template<class Type> class Vector; }
+namespace ManagedMemory { template<class Type> class Vector; }
 
 template<class Type>
-class UnifiedMemory::Vector : public Managed
+class ManagedMemory::Vector : public Managed
 {
     public:
     using ValueType = Type;
