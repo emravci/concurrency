@@ -2,7 +2,7 @@
 
 #pragma once
 
-namespace UnifiedMemory 
+namespace ManagedMemory 
 { 
     template<class Type> class SharedMatrix;
     template<class Type> class TransposeView;
@@ -10,7 +10,7 @@ namespace UnifiedMemory
 }
 
 template<class Type>
-class UnifiedMemory::TransposeView
+class ManagedMemory::TransposeView
 {
     public:
     TransposeView(const SharedMatrix<Type>& sharedMatrix) : sharedMatrix_{sharedMatrix} {}
@@ -25,7 +25,7 @@ class UnifiedMemory::TransposeView
 };
 
 template<class Type>
-UnifiedMemory::TransposeView<Type> UnifiedMemory::transpose(const SharedMatrix<Type>& sharedMatrix)
+ManagedMemory::TransposeView<Type> ManagedMemory::transpose(const SharedMatrix<Type>& sharedMatrix)
 {
     return TransposeView<Type>{sharedMatrix};
 }
