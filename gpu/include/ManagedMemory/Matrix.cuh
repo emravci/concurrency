@@ -4,10 +4,10 @@
 
 #include "Managed.cuh"
 
-namespace UnifiedMemory { template<class Type> class Matrix; }
+namespace ManagedMemory { template<class Type> class Matrix; }
 
 template<class Type>
-class UnifiedMemory::Matrix : public Managed
+class ManagedMemory::Matrix : public Managed
 {
     public:
     Matrix(std::size_t row, std::size_t column) : row_{row}, column_{column} { allocateUnifiedMemory(); }
