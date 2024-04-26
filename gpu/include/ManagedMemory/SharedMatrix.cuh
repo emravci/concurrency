@@ -9,10 +9,10 @@
 
 #pragma once
 
-namespace UnifiedMemory { template<class Type> class SharedMatrix; }
+namespace ManagedMemory { template<class Type> class SharedMatrix; }
 
 template<class Type>
-class UnifiedMemory::SharedMatrix
+class ManagedMemory::SharedMatrix
 {
     public:
     SharedMatrix(std::size_t row, std::size_t column) : row_{row}, column_{column}
