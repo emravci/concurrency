@@ -5,36 +5,37 @@
 #include <numeric>
 #include <chrono>
 #include <memory>
-#include "include/Vector.cuh"
+#include "include/UnifiedMemory/Vector.cuh"
+#include "include/OpenKernel/Vector.cuh"
 
 const int N = 1024 * 1024 * 256;
 const int threadsPerBlock = 1024;
 const int blocksPerGrid = 256;
 
-template<class Type>
-__global__ void fill(UnifiedMemory::Vector<Type>& array, Type value)
+template<class VectorType>
+__global__ void fill(VectorType& array, typename VectorType::ValueType value)
 {
-    const std::size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    const std::size_t stride = blockDim.x * gridDim.x;
-    for (std::size_t i = index; i < array.size(); i += stride) { array[i] = value; }
+    using SizeType = typename VectorType::SizeType;
+    for (SizeType i = threadIdx.x + blockIdx.x * blockDim.x; i < array.size(); i += blockDim.x * gridDim.x) { array[i] = value; }
 }
 
-template<class Type>
-__global__ void dot(UnifiedMemory::Vector<Type>& partials, const UnifiedMemory::Vector<Type>& lhs, const UnifiedMemory::Vector<Type>& rhs)
+template<class VectorType>
+__global__ void dot(VectorType& partials, const VectorType& lhs, const VectorType& rhs)
 {
-    __shared__ Type cache[threadsPerBlock];
+    using ValueType = typename VectorType::ValueType;
+    using SizeType = typename VectorType::SizeType;
 
-    const std::size_t index = threadIdx.x + blockIdx.x * blockDim.x;
-    const std::size_t stride = blockDim.x * gridDim.x;
-    const std::size_t cacheIndex = threadIdx.x;
+    __shared__ ValueType cache[threadsPerBlock];
 
-    auto partial = static_cast<Type>(0);
-    for(std::size_t i = index, N = lhs.size(); i < N; i += stride) { partial += lhs[index] * rhs[index]; }
+    const SizeType cacheIndex = threadIdx.x;
+
+    auto partial = static_cast<ValueType>(0);
+    for(SizeType i = threadIdx.x + blockIdx.x * blockDim.x, N = lhs.size(); i < N; i += blockDim.x * gridDim.x) { partial += lhs[i] * rhs[i]; }
     cache[cacheIndex] = partial;
     __syncthreads();
 
     // for reductions, threadsPerBlock must be a power of 2
-    for(std::size_t half = blockDim.x / 2; half != 0; half /= 2)
+    for(SizeType half = blockDim.x / 2; half != 0; half /= 2)
     {
         if (cacheIndex < half) { cache[cacheIndex] += cache[cacheIndex + half]; }
         __syncthreads();
@@ -51,13 +52,14 @@ int main()
     // multithreaded fill might perform better
     fill<<<blocksPerGrid, threadsPerBlock>>>(*ptrVectorOfOnes, 1.0);
 
-    // 9ms total
-    // concurrent - 3ms dot according to nvprof but memory allocation takes around 1 or 2sec
+    // 8ms total
+    // concurrent - 8ms dot according to nvprof
     auto ptrPartials = std::make_unique<VectorType>(blocksPerGrid);
     auto begin = std::chrono::high_resolution_clock::now();
     dot<<<blocksPerGrid, threadsPerBlock>>>(*ptrPartials, *ptrVectorOfOnes, *ptrVectorOfOnes);
     cudaDeviceSynchronize();
-    // sequential addition on CPU - 6ms probably
+    
+    // sequential addition on CPU - 150us
     double value = std::accumulate(ptrPartials->cbegin(), ptrPartials->cend(), 0.0);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
