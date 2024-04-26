@@ -9,10 +9,10 @@
 
 #pragma once
 
-namespace UnifiedMemory { template<class Type> class SharedVector; }
+namespace ManagedMemory { template<class Type> class SharedVector; }
 
 template<class Type>
-class UnifiedMemory::SharedVector
+class ManagedMemory::SharedVector
 {
     public:
     SharedVector(std::size_t size) : size_{size}
