@@ -4,10 +4,10 @@
 #include <numeric>
 #include <memory>
 #include <chrono>
-#include "../include/UnifiedMemory/Matrix.cuh"
+#include "../include/ManagedMemory/Matrix.cuh"
 
 template<class Type>
-__global__ void fill(UnifiedMemory::Matrix<Type>& matrix, Type value)
+__global__ void fill(ManagedMemory::Matrix<Type>& matrix, Type value)
 {
     for(std::size_t i = threadIdx.y + blockIdx.y * blockDim.y; i < matrix.row(); i += blockDim.y * gridDim.y)
     {
@@ -23,7 +23,7 @@ constexpr std::size_t tileWidth = 32;
 constexpr std::size_t coarseFactor = 8;
 
 template<class Type>
-__global__ void multiply(UnifiedMemory::Matrix<Type>& answer, const UnifiedMemory::Matrix<Type>& lhs, const UnifiedMemory::Matrix<Type>& rhs)
+__global__ void multiply(ManagedMemory::Matrix<Type>& answer, const ManagedMemory::Matrix<Type>& lhs, const ManagedMemory::Matrix<Type>& rhs)
 {
     __shared__ Type leftTile[tileWidth][tileWidth];
     __shared__ Type rightTile[tileWidth][tileWidth];
@@ -60,7 +60,7 @@ __global__ void multiply(UnifiedMemory::Matrix<Type>& answer, const UnifiedMemor
 }
 
 template<class Type>
-bool checkResult(const UnifiedMemory::Matrix<Type>& matrix, const Type value)
+bool checkResult(const ManagedMemory::Matrix<Type>& matrix, const Type value)
 {
     for(std::size_t i = 0; i < matrix.row(); ++i)
     {
@@ -74,7 +74,7 @@ bool checkResult(const UnifiedMemory::Matrix<Type>& matrix, const Type value)
 
 int main()
 {
-    using MatrixType = UnifiedMemory::Matrix<double>;
+    using MatrixType = ManagedMemory::Matrix<double>;
     constexpr std::size_t lhsRow = 1024;
     constexpr std::size_t rhsCol = 1024;
     constexpr std::size_t common = 1024;
