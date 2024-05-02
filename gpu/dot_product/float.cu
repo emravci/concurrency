@@ -20,6 +20,22 @@ __global__ void fill(VectorType& array, typename VectorType::ValueType value)
     for (SizeType i = threadIdx.x + blockIdx.x * blockDim.x; i < array.size(); i += blockDim.x * gridDim.x) { array[i] = value; }
 }
 
+template<class ValueType, class SizeType>
+struct Reduce
+{   // for reduction size must be exact power of 2
+    __device__ Reduce(ValueType *array, SizeType size) : array_{array}, size_{size} {}
+    __device__ void operator()(SizeType index)
+    {
+        for(SizeType half = size_ / 2; half != 0; half /= 2)
+        {
+            if(index < half) { array_[index] += array_[index + half]; }
+            __syncthreads();
+        }
+    }
+    ValueType *array_;
+    SizeType size_;
+};
+
 template<class VectorType>
 __global__ void dot(VectorType& partials, const VectorType& lhs, const VectorType& rhs)
 {
@@ -35,12 +51,9 @@ __global__ void dot(VectorType& partials, const VectorType& lhs, const VectorTyp
     cache[cacheIndex] = partial;
     __syncthreads();
 
-    // for reductions, threadsPerBlock must be a power of 2
-    for(SizeType half = blockDim.x / 2; half != 0; half /= 2)
-    {
-        if (cacheIndex < half) { cache[cacheIndex] += cache[cacheIndex + half]; }
-        __syncthreads();
-    }
+    Reduce reduceCache{cache, threadsPerBlock};
+    reduceCache(threadIdx.x);
+    // Reduce{cache, threadsPerBlock}(threadIdx.x);
 
     if(cacheIndex == 0) { partials[blockIdx.x] = cache[0]; }
 }
