@@ -20,6 +20,16 @@ __global__ void fill(VectorType& array, typename VectorType::ValueType value)
     for (SizeType i = threadIdx.x + blockIdx.x * blockDim.x; i < array.size(); i += blockDim.x * gridDim.x) { array[i] = value; }
 }
 
+template<class VectorType>
+__device__ typename VectorType::ValueType gridStrideDot(const VectorType& lhs, const VectorType& rhs)
+{
+    using ValueType = typename VectorType::ValueType;
+    using SizeType = typename VectorType::SizeType;
+    auto partial = static_cast<ValueType>(0);
+    for(SizeType i = threadIdx.x + blockIdx.x * blockDim.x, N = lhs.size(); i < N; i += blockDim.x * gridDim.x) { partial += lhs[i] * rhs[i]; }
+    return partial;
+}
+
 template<class ValueType, class SizeType>
 struct Reduce
 {   // for reduction size must be exact power of 2
@@ -44,18 +54,14 @@ __global__ void dot(VectorType& partials, const VectorType& lhs, const VectorTyp
 
     __shared__ ValueType cache[threadsPerBlock];
 
-    const SizeType cacheIndex = threadIdx.x;
-
-    auto partial = static_cast<ValueType>(0);
-    for(SizeType i = threadIdx.x + blockIdx.x * blockDim.x, N = lhs.size(); i < N; i += blockDim.x * gridDim.x) { partial += lhs[i] * rhs[i]; }
-    cache[cacheIndex] = partial;
+    cache[threadIdx.x] = gridStrideDot(lhs, rhs);
     __syncthreads();
 
     Reduce reduceCache{cache, threadsPerBlock};
     reduceCache(threadIdx.x);
     // Reduce{cache, threadsPerBlock}(threadIdx.x);
 
-    if(cacheIndex == 0) { partials[blockIdx.x] = cache[0]; }
+    if(threadIdx.x == 0) { partials[blockIdx.x] = cache[0]; }
 }
 
 template<class Type>
@@ -71,7 +77,7 @@ int main()
     using VectorType = ManagedMemory::Vector<ValueType>;
     auto ptrVectorOfOnes = std::make_unique<VectorType>(N);
     VectorType& vectorOfOnes = *ptrVectorOfOnes;
-    // surprisingly it takes around 450ms, sequential std::fill on CPU takes around 550ms
+    // surprisingly it takes around 330ms, sequential std::fill on CPU takes around 550ms
     // multithreaded fill might perform better
     fill<<<blocksPerGrid, threadsPerBlock>>>(vectorOfOnes, one<ValueType>);
 
