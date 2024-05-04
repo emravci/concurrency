@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#define checkCudaError(val) Deus::__checkCudaError((val), #val, __FILE__, __LINE__)
+#define checkCudaError(fcn) Deus::__checkCudaError((fcn), #fcn, __FILE__, __LINE__)
 
 namespace Deus { void __checkCudaError(cudaError_t, const char *const, const char *const, const std::size_t); }
 
