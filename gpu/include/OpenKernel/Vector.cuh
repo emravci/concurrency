@@ -1,5 +1,7 @@
 // Reference: [1] CUDA C++ Programming Guide
 
+#pragma once
+
 namespace OpenKernel { template<class Type> class Vector; }
 
 template<class Type>
