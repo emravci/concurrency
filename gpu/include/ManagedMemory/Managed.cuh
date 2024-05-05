@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "../Deus/error.cuh"
+
 namespace ManagedMemory { class Managed; }
 
 class ManagedMemory::Managed
@@ -10,14 +12,14 @@ class ManagedMemory::Managed
     void *operator new(std::size_t len)
     {
         void *ptr;
-        cudaMallocManaged(&ptr, len);
-        cudaDeviceSynchronize();
+        checkCudaError(cudaMallocManaged(&ptr, len));
+        checkCudaError(cudaDeviceSynchronize());
         return ptr;
     }
 
     void operator delete(void *ptr)
     {
-        cudaDeviceSynchronize();
-        cudaFree(ptr);
+        checkCudaError(cudaDeviceSynchronize());
+        checkCudaError(cudaFree(ptr));
     }
 };
