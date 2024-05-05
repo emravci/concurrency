@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Managed.cuh"
+#include "../Deus/error.cuh"
 
 namespace ManagedMemory { template<class Type> class Vector; }
 
@@ -28,13 +29,13 @@ class ManagedMemory::Vector : public Managed
     private:
     void allocateUnifiedMemory() 
     {
-        cudaMallocManaged(&data_, size_ * sizeof(ValueType));
-        cudaDeviceSynchronize();
+        checkCudaError(cudaMallocManaged(&data_, size_ * sizeof(ValueType)));
+        checkCudaError(cudaDeviceSynchronize());
     }
     void freeUnifiedMemory() 
     {
-        cudaDeviceSynchronize();
-        cudaFree(data_); 
+        checkCudaError(cudaDeviceSynchronize());
+        checkCudaError(cudaFree(data_)); 
     }
     private:
     ValueType *data_ = nullptr;
