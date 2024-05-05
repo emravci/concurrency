@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Managed.cuh"
+#include "../Deus/error.cuh"
 
 namespace ManagedMemory { template<class Type> class Matrix; }
 
@@ -28,13 +29,13 @@ class ManagedMemory::Matrix : public Managed
     private:
     void allocateUnifiedMemory() 
     {   
-        cudaMallocManaged(&data_, size() * sizeof(Type));
-        cudaDeviceSynchronize();
+        checkCudaError(cudaMallocManaged(&data_, size() * sizeof(Type)));
+        checkCudaError(cudaDeviceSynchronize());
     }
     void freeUnifiedMemory() 
     { 
-        cudaDeviceSynchronize();
-        cudaFree(data_); 
+        checkCudaError(cudaDeviceSynchronize());
+        checkCudaError(cudaFree(data_));
     }
     __host__ __device__ std::size_t convertToOneDimensionalIndex(std::size_t i, std::size_t j) const { return i * column_ + j; }
     private:
