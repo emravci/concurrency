@@ -28,6 +28,11 @@ class Deus::Vector
     Vector(Vector&&) = delete;
     Vector& operator=(Vector&&) = delete;
     ~Vector() { freeUnifiedMemory(); }
+    void prefetchAll(int to) const
+    {
+        checkCudaError(cudaMemPrefetchAsync(data_, size_ * sizeof(ValueType), to));
+        checkCudaError(cudaMemPrefetchAsync(&size_, sizeof(SizeType), to));
+    }
     __host__ __device__ SizeType size() const { return size_; }
     __host__ __device__ ValueType& operator[](SizeType i) { return data_[i]; }
     __host__ __device__ const ValueType& operator[](SizeType i) const { return data_[i]; }
