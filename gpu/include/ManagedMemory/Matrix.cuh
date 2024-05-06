@@ -1,8 +1,5 @@
 // Reference: [1] Unified Memory in CUDA 6 by Mark Harris. NVIDIA Developer Blog
 
-// Assumption: [1] Instances of the class are assumed to be accessed by device#0. 
-//                 This improves page-faults, when automatic variable instance is passed-by-ref.
-
 #pragma once
 
 #include "Managed.cuh"
@@ -15,11 +12,7 @@ class ManagedMemory::Matrix : public Managed
 {
     public:
     using SelfType = Matrix<Type>;
-    Matrix(std::size_t row, std::size_t column) : row_{row}, column_{column} 
-    { 
-        allocateUnifiedMemory();
-        advise();
-    }
+    Matrix(std::size_t row, std::size_t column) : row_{row}, column_{column} { allocateUnifiedMemory(); }
     Matrix(const Matrix&) = delete;
     Matrix& operator=(const Matrix&) = delete;
     Matrix(Matrix&&) = delete;
@@ -46,7 +39,6 @@ class ManagedMemory::Matrix : public Managed
         checkCudaError(cudaFree(data_));
     }
     __host__ __device__ std::size_t convertToOneDimensionalIndex(std::size_t i, std::size_t j) const { return i * column_ + j; }
-    void advise() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseSetAccessedBy, 0)); }
     private:
     Type *data_ = nullptr;
     std::size_t row_, column_;
