@@ -28,6 +28,12 @@ class Deus::Matrix
     Matrix(Matrix&&) = delete;
     Matrix& operator=(Matrix&&) = delete;
     ~Matrix() { freeUnifiedMemory(); }
+    void prefetchAll(int to) const
+    {
+        checkCudaError(cudaMemPrefetchAsync(data_, size() * sizeof(ValueType), to));
+        checkCudaError(cudaMemPrefetchAsync(&row_, sizeof(SizeType), to));
+        checkCudaError(cudaMemPrefetchAsync(&column_, sizeof(SizeType), to));
+    }
     __host__ __device__ SizeType size() const { return row_ * column_; }
     __host__ __device__ SizeType row() const { return row_; }
     __host__ __device__ SizeType column() const { return column_; }
