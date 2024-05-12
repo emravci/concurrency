@@ -29,8 +29,8 @@ class Deus::Vector
     Vector& operator=(Vector&&) = delete;
     ~Vector() 
     {
+        freeUnifiedMemory();
         adviseAgainstMemory();
-        freeUnifiedMemory(); 
     }
     void prefetchAllAsync(int to, cudaStream_t stream = 0) const
     {
@@ -49,11 +49,7 @@ class Deus::Vector
     __host__ __device__ const ValueType* cbegin() const { return data_; }
     __host__ __device__ const ValueType* cend() const { return &data_[size_]; }
     private:
-    void allocateUnifiedMemory() 
-    {
-        checkCudaError(cudaMallocManaged(&data_, size_ * sizeof(ValueType)));
-        checkCudaError(cudaDeviceSynchronize());
-    }
+    void allocateUnifiedMemory() { checkCudaError(cudaMallocManaged(&data_, size_ * sizeof(ValueType))); }
     void freeUnifiedMemory() 
     {
         checkCudaError(cudaDeviceSynchronize());
