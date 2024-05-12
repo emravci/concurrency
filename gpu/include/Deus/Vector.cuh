@@ -21,19 +21,27 @@ class Deus::Vector
     Vector(SizeType size) : size_{size} 
     {
         allocateUnifiedMemory();
-        advise();
+        adviseOnMemory();
     }
     Vector(const Vector&) = delete;
     Vector& operator=(const Vector&) = delete;
     Vector(Vector&&) = delete;
     Vector& operator=(Vector&&) = delete;
-    ~Vector() { freeUnifiedMemory(); }
-    void prefetchAll(int to) const
+    ~Vector() 
     {
-        checkCudaError(cudaMemPrefetchAsync(data_, size_ * sizeof(ValueType), to));
-        checkCudaError(cudaMemPrefetchAsync(&size_, sizeof(SizeType), to));
+        adviseAgainstMemory();
+        freeUnifiedMemory(); 
     }
-    __host__ __device__ SizeType size() const { return size_; }
+    void prefetchAllAsync(int to, cudaStream_t stream = 0) const
+    {
+        checkCudaError(cudaMemPrefetchAsync(data_, size_ * sizeof(ValueType), to, stream));
+        checkCudaError(cudaMemPrefetchAsync(&size_, sizeof(SizeType), to, stream));
+    }
+    void prefetchWholeDataAsync(int to, cudaStream_t stream = 0) const
+    {
+        checkCudaError(cudaMemPrefetchAsync(data_, size_ * sizeof(ValueType), to, stream));
+    }
+    __host__ __device__ const SizeType& size() const { return size_; }
     __host__ __device__ ValueType& operator[](SizeType i) { return data_[i]; }
     __host__ __device__ const ValueType& operator[](SizeType i) const { return data_[i]; }
     __host__ __device__ ValueType* begin() { return data_; }
@@ -51,7 +59,8 @@ class Deus::Vector
         checkCudaError(cudaDeviceSynchronize());
         checkCudaError(cudaFree(data_)); 
     }
-    void advise() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseSetAccessedBy, 0)); }
+    void adviseOnMemory() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseSetAccessedBy, 0)); }
+    void adviseAgainstMemory() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseUnsetAccessedBy, 0)); }
     private:
     ValueType *data_ = nullptr;
     SizeType size_ = 0;
