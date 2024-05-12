@@ -21,22 +21,30 @@ class Deus::Matrix
     Matrix(SizeType row, SizeType column) : row_{row}, column_{column}
     { 
         allocateUnifiedMemory();
-        advise();
+        adviseOnMemory();
     }
     Matrix(const Matrix&) = delete;
     Matrix& operator=(const Matrix&) = delete;
     Matrix(Matrix&&) = delete;
     Matrix& operator=(Matrix&&) = delete;
-    ~Matrix() { freeUnifiedMemory(); }
-    void prefetchAll(int to) const
+    ~Matrix() 
+    { 
+        adviseAgainstMemory();
+        freeUnifiedMemory(); 
+    }
+    void prefetchAllAsync(int to, cudaStream_t stream = 0) const
     {
-        checkCudaError(cudaMemPrefetchAsync(data_, size() * sizeof(ValueType), to));
-        checkCudaError(cudaMemPrefetchAsync(&row_, sizeof(SizeType), to));
-        checkCudaError(cudaMemPrefetchAsync(&column_, sizeof(SizeType), to));
+        checkCudaError(cudaMemPrefetchAsync(data_, size() * sizeof(ValueType), to, stream));
+        checkCudaError(cudaMemPrefetchAsync(&row_, sizeof(SizeType), to, stream));
+        checkCudaError(cudaMemPrefetchAsync(&column_, sizeof(SizeType), to, stream));
+    }
+    void prefetchWholeDataAsync(int to, cudaStream_t stream = 0) const
+    {
+        checkCudaError(cudaMemPrefetchAsync(data_, size() * sizeof(ValueType), to, stream));
     }
     __host__ __device__ SizeType size() const { return row_ * column_; }
-    __host__ __device__ SizeType row() const { return row_; }
-    __host__ __device__ SizeType column() const { return column_; }
+    __host__ __device__ const SizeType& row() const { return row_; }
+    __host__ __device__ const SizeType& column() const { return column_; }
     __host__ __device__ ValueType& operator()(SizeType i, SizeType j) { return data_[convertToOneDimensionalIndex(i, j)]; }
     __host__ __device__ const ValueType& operator()(SizeType i, SizeType j) const { return data_[convertToOneDimensionalIndex(i, j)]; }
     __host__ __device__ ValueType* begin() { return data_; }
@@ -55,7 +63,8 @@ class Deus::Matrix
         checkCudaError(cudaFree(data_));
     }
     __host__ __device__ SizeType convertToOneDimensionalIndex(SizeType i, SizeType j) const { return i * column_ + j; }
-    void advise() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseSetAccessedBy, 0)); }
+    void adviseOnMemory() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseSetAccessedBy, 0)); }
+    void adviseAgainstMemory() const { checkCudaError(cudaMemAdvise(this, sizeof(SelfType), cudaMemAdviseUnsetAccessedBy, 0)); }
     private:
     ValueType *data_ = nullptr;
     SizeType row_, column_;
