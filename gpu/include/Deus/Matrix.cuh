@@ -29,8 +29,8 @@ class Deus::Matrix
     Matrix& operator=(Matrix&&) = delete;
     ~Matrix() 
     { 
-        adviseAgainstMemory();
         freeUnifiedMemory(); 
+        adviseAgainstMemory();
     }
     void prefetchAllAsync(int to, cudaStream_t stream = 0) const
     {
@@ -52,11 +52,7 @@ class Deus::Matrix
     __host__ __device__ const ValueType* cbegin() const { return data_; }
     __host__ __device__ const ValueType* cend() const { return &data_[size()]; }
     private:
-    void allocateUnifiedMemory() 
-    {   
-        checkCudaError(cudaMallocManaged(&data_, size() * sizeof(ValueType)));
-        checkCudaError(cudaDeviceSynchronize());
-    }
+    void allocateUnifiedMemory() { checkCudaError(cudaMallocManaged(&data_, size() * sizeof(ValueType))); }
     void freeUnifiedMemory() 
     { 
         checkCudaError(cudaDeviceSynchronize());
